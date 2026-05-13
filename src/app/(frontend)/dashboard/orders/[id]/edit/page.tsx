@@ -56,7 +56,12 @@ export default function EditOrderPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ ...fields, price: parseFloat(fields.price) || 0 }),
+        body: JSON.stringify({
+          ...fields,
+          client: fields.client ? Number(fields.client) : undefined,
+          category: fields.category ? Number(fields.category) : undefined,
+          price: parseFloat(fields.price) || 0,
+        }),
       })
 
       if (!res.ok) {

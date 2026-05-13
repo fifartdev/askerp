@@ -11,6 +11,14 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   cancelled: { label: 'Ακυρώθηκε', color: 'bg-red-100 text-red-700' },
 }
 
+const ADDRESS_TYPE_LABELS: Record<string, string> = {
+  home: 'Κατοικία',
+  work: 'Εργασία',
+  office: 'Γραφείο',
+  warehouse: 'Αποθήκη',
+  other: 'Άλλο',
+}
+
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const payload = await getPayload()
@@ -30,7 +38,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     depth: 1,
   })
 
-  const location = client.location as any
+  const addresses = (client.addresses as any[]) ?? []
 
   return (
     <div className="space-y-6">
@@ -65,12 +73,6 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               <dd className="mt-1 text-sm font-medium text-gray-900">{client.landline}</dd>
             </div>
           )}
-          {location?.address && (
-            <div className="sm:col-span-2">
-              <dt className="text-xs text-gray-400">Διεύθυνση</dt>
-              <dd className="mt-1 text-sm text-gray-900">{location.address}</dd>
-            </div>
-          )}
           {client.notes && (
             <div className="sm:col-span-2">
               <dt className="text-xs text-gray-400">Σημειώσεις</dt>
@@ -78,6 +80,50 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             </div>
           )}
         </dl>
+      </div>
+
+      {/* Addresses */}
+      <div>
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">
+          Διευθύνσεις ({addresses.length})
+        </h3>
+        {addresses.length === 0 ? (
+          <div className="bg-white rounded-xl border border-dashed border-gray-300 p-6 text-center">
+            <p className="text-sm text-gray-400">Δεν έχουν καταχωρηθεί διευθύνσεις.</p>
+            <Link
+              href={`/dashboard/clients/${id}/edit`}
+              className="mt-2 inline-block text-brand-600 text-sm font-medium hover:underline"
+            >
+              Προσθήκη διεύθυνσης
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {addresses.map((addr: any, i: number) => (
+              <div key={addr.id ?? i} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex items-start gap-3">
+                <div className="mt-0.5 flex-shrink-0 w-8 h-8 rounded-full bg-brand-50 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 mb-1">
+                    {ADDRESS_TYPE_LABELS[addr.type] ?? addr.type}
+                  </span>
+                  <p className="text-sm text-gray-800 leading-snug">
+                    {addr.address || <span className="text-gray-400 italic">Χωρίς διεύθυνση</span>}
+                  </p>
+                  {addr.lat && addr.lng && (
+                    <p className="mt-0.5 text-xs text-gray-400">
+                      {Number(addr.lat).toFixed(5)}, {Number(addr.lng).toFixed(5)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Orders */}
@@ -117,7 +163,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                   const cat = typeof order.category === 'object' ? (order.category as any)?.name : '—'
                   return (
                     <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-gray-900">{order.orderNumber}</td>
+                      <td className="px-4 py-3 font-mono font-medium text-gray-900">{order.orderNumber}</td>
                       <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{cat}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${s.color}`}>
@@ -125,14 +171,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                         </span>
                       </td>
                       <td className="px-4 py-3 text-gray-500 hidden md:table-cell">
-                        {order.date
-                          ? new Date(order.date).toLocaleDateString('el-GR')
-                          : '—'}
+                        {order.date ? new Date(order.date).toLocaleDateString('el-GR') : '—'}
                       </td>
                       <td className="px-4 py-3 text-right font-medium text-gray-900">
-                        {order.price != null
-                          ? `${Number(order.price).toFixed(2)} €`
-                          : '—'}
+                        {order.price != null ? `${Number(order.price).toFixed(2)} €` : '—'}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <Link

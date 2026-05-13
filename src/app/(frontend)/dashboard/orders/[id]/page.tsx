@@ -25,6 +25,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const client = typeof order.client === 'object' ? (order.client as any) : null
   const category = typeof order.category === 'object' ? (order.category as any) : null
   const history = (order.statusHistory as any[]) ?? []
+  const serviceAddress = (order.serviceAddress as any) ?? null
 
   return (
     <div className="space-y-6">
@@ -80,6 +81,19 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                     : '—'}
                 </dd>
               </div>
+              {serviceAddress?.address && (
+                <div className="sm:col-span-2">
+                  <dt className="text-xs text-gray-400">Διεύθυνση Εργασίας</dt>
+                  <dd className="mt-1 text-sm text-gray-900">
+                    {serviceAddress.addressType && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 mr-2">
+                        {serviceAddress.addressType}
+                      </span>
+                    )}
+                    {serviceAddress.address}
+                  </dd>
+                </div>
+              )}
               {order.description && (
                 <div className="sm:col-span-2">
                   <dt className="text-xs text-gray-400">Περιγραφή</dt>

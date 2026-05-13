@@ -7,6 +7,22 @@ import { Suspense } from 'react'
 
 type SelectOption = { id: string; name: string }
 
+type ClientAddress = {
+  id: string
+  type: string
+  address: string
+  lat?: number
+  lng?: number
+}
+
+const ADDRESS_TYPE_LABELS: Record<string, string> = {
+  home: 'Κατοικία',
+  work: 'Εργασία',
+  office: 'Γραφείο',
+  warehouse: 'Αποθήκη',
+  other: 'Άλλο',
+}
+
 function NewOrderForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -16,6 +32,7 @@ function NewOrderForm() {
   const [error, setError] = useState('')
   const [clients, setClients] = useState<SelectOption[]>([])
   const [categories, setCategories] = useState<SelectOption[]>([])
+  const [clientAddresses, setClientAddresses] = useState<ClientAddress[]>([])
   const [fields, setFields] = useState({
     client: preselectedClient,
     category: '',
@@ -24,7 +41,14 @@ function NewOrderForm() {
     description: '',
     status: 'open',
   })
+  const [serviceAddress, setServiceAddress] = useState({
+    addressType: '',
+    address: '',
+    lat: 0,
+    lng: 0,
+  })
 
+  // Load clients + categories on mount
   useEffect(() => {
     Promise.all([
       fetch('/api/clients?limit=200&sort=name', { credentials: 'include' }).then((r) => r.json()),
@@ -36,6 +60,49 @@ function NewOrderForm() {
       setCategories(cat.docs ?? [])
     })
   }, [])
+
+  // Fetch addresses when client changes
+  useEffect(() => {
+    if (!fields.client) {
+      setClientAddresses([])
+      setServiceAddress({ addressType: '', address: '', lat: 0, lng: 0 })
+      return
+    }
+    fetch(`/api/clients/${fields.client}?depth=0`, { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data) => {
+        const addrs: ClientAddress[] = (data.addresses ?? []).map((a: any) => ({
+          id: a.id,
+          type: a.type,
+          address: a.address ?? '',
+          lat: a.lat,
+          lng: a.lng,
+        }))
+        setClientAddresses(addrs)
+        // Auto-select first address
+        if (addrs.length > 0) {
+          setServiceAddress({
+            addressType: ADDRESS_TYPE_LABELS[addrs[0].type] ?? addrs[0].type,
+            address: addrs[0].address,
+            lat: addrs[0].lat ?? 0,
+            lng: addrs[0].lng ?? 0,
+          })
+        } else {
+          setServiceAddress({ addressType: '', address: '', lat: 0, lng: 0 })
+        }
+      })
+  }, [fields.client])
+
+  function handleAddressSelect(addrId: string) {
+    const addr = clientAddresses.find((a) => a.id === addrId)
+    if (!addr) return
+    setServiceAddress({
+      addressType: ADDRESS_TYPE_LABELS[addr.type] ?? addr.type,
+      address: addr.address,
+      lat: addr.lat ?? 0,
+      lng: addr.lng ?? 0,
+    })
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -49,7 +116,10 @@ function NewOrderForm() {
         credentials: 'include',
         body: JSON.stringify({
           ...fields,
+          client: fields.client ? Number(fields.client) : undefined,
+          category: fields.category ? Number(fields.category) : undefined,
           price: parseFloat(fields.price) || 0,
+          serviceAddress: serviceAddress.address ? serviceAddress : undefined,
         }),
       })
 
@@ -69,8 +139,10 @@ function NewOrderForm() {
     }
   }
 
-  const set = (k: keyof typeof fields) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
-    setFields((f) => ({ ...f, [k]: e.target.value }))
+  const set =
+    (k: keyof typeof fields) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+      setFields((f) => ({ ...f, [k]: e.target.value }))
 
   return (
     <div className="max-w-xl space-y-6">
@@ -85,6 +157,7 @@ function NewOrderForm() {
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Client */}
           <div>
             <label htmlFor="client" className="block text-sm font-medium text-gray-700 mb-1">
               Πελάτης <span className="text-red-500">*</span>
@@ -105,6 +178,45 @@ function NewOrderForm() {
             </select>
           </div>
 
+          {/* Address selector — shows only when client has addresses */}
+          {clientAddresses.length > 0 && (
+            <div>
+              <label htmlFor="addressSelect" className="block text-sm font-medium text-gray-700 mb-1">
+                Διεύθυνση Εργασίας
+              </label>
+              <select
+                id="addressSelect"
+                onChange={(e) => handleAddressSelect(e.target.value)}
+                defaultValue={clientAddresses[0]?.id}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              >
+                {clientAddresses.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {ADDRESS_TYPE_LABELS[a.type] ?? a.type}
+                    {a.address ? ` — ${a.address}` : ''}
+                  </option>
+                ))}
+              </select>
+              {serviceAddress.address && (
+                <p className="mt-1 text-xs text-gray-400 truncate">📍 {serviceAddress.address}</p>
+              )}
+            </div>
+          )}
+
+          {/* No addresses warning */}
+          {fields.client && clientAddresses.length === 0 && (
+            <div className="rounded-lg bg-yellow-50 border border-yellow-200 px-3 py-2">
+              <p className="text-xs text-yellow-700">
+                Ο πελάτης δεν έχει διευθύνσεις. Μπορείτε να προσθέσετε μέσω{' '}
+                <Link href={`/dashboard/clients/${fields.client}/edit`} className="underline font-medium">
+                  επεξεργασίας πελάτη
+                </Link>
+                .
+              </p>
+            </div>
+          )}
+
+          {/* Category */}
           <div>
             <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
               Κατηγορία Υπηρεσίας <span className="text-red-500">*</span>
@@ -125,6 +237,7 @@ function NewOrderForm() {
             </select>
           </div>
 
+          {/* Date + Price */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
@@ -156,6 +269,7 @@ function NewOrderForm() {
             </div>
           </div>
 
+          {/* Status */}
           <div>
             <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
               Κατάσταση
@@ -173,6 +287,7 @@ function NewOrderForm() {
             </select>
           </div>
 
+          {/* Description */}
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
               Σύντομη Περιγραφή
@@ -186,9 +301,7 @@ function NewOrderForm() {
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
 
           <div className="flex items-center gap-3 pt-2">
             <button

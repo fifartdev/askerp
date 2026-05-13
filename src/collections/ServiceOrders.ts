@@ -145,6 +145,39 @@ export const ServiceOrders: CollectionConfig = {
       label: 'Σύντομη Περιγραφή',
     },
     {
+      name: 'serviceAddress',
+      type: 'group',
+      label: 'Διεύθυνση Εργασίας',
+      admin: {
+        description: 'Η διεύθυνση όπου θα εκτελεστεί η εργασία.',
+      },
+      fields: [
+        {
+          name: 'addressType',
+          type: 'text',
+          label: 'Τύπος',
+          admin: { readOnly: true },
+        },
+        {
+          name: 'address',
+          type: 'text',
+          label: 'Διεύθυνση',
+        },
+        {
+          name: 'lat',
+          type: 'number',
+          label: 'Γεωγραφικό Πλάτος',
+          admin: { hidden: true },
+        },
+        {
+          name: 'lng',
+          type: 'number',
+          label: 'Γεωγραφικό Μήκος',
+          admin: { hidden: true },
+        },
+      ],
+    },
+    {
       name: 'statusHistory',
       type: 'array',
       label: 'Ιστορικό Καταστάσεων',

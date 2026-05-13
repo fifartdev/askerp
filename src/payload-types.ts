@@ -182,11 +182,18 @@ export interface Client {
   name: string;
   landline?: string | null;
   mobile?: string | null;
-  location?: {
-    address?: string | null;
-    lat?: number | null;
-    lng?: number | null;
-  };
+  /**
+   * Προσθέστε μία ή περισσότερες διευθύνσεις για τον πελάτη.
+   */
+  addresses?:
+    | {
+        type: 'home' | 'work' | 'office' | 'warehouse' | 'other';
+        address?: string | null;
+        lat?: number | null;
+        lng?: number | null;
+        id?: string | null;
+      }[]
+    | null;
   notes?: string | null;
   /**
    * Ο λογαριασμός σύνδεσης του πελάτη (για μελλοντική χρήση).
@@ -216,6 +223,15 @@ export interface ServiceOrder {
   date: string;
   price: number;
   description?: string | null;
+  /**
+   * Η διεύθυνση όπου θα εκτελεστεί η εργασία.
+   */
+  serviceAddress?: {
+    addressType?: string | null;
+    address?: string | null;
+    lat?: number | null;
+    lng?: number | null;
+  };
   /**
    * Καταχωρείται αυτόματα κάθε φορά που αλλάζει η κατάσταση.
    */
@@ -380,12 +396,14 @@ export interface ClientsSelect<T extends boolean = true> {
   name?: T;
   landline?: T;
   mobile?: T;
-  location?:
+  addresses?:
     | T
     | {
+        type?: T;
         address?: T;
         lat?: T;
         lng?: T;
+        id?: T;
       };
   notes?: T;
   linkedUser?: T;
@@ -415,6 +433,14 @@ export interface ServiceOrdersSelect<T extends boolean = true> {
   date?: T;
   price?: T;
   description?: T;
+  serviceAddress?:
+    | T
+    | {
+        addressType?: T;
+        address?: T;
+        lat?: T;
+        lng?: T;
+      };
   statusHistory?:
     | T
     | {

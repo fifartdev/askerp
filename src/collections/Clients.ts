@@ -1,6 +1,14 @@
 import type { CollectionConfig } from 'payload'
 import { isAdminOrSuperAdmin } from '../access/isAdminOrSuperAdmin'
 
+export const ADDRESS_TYPE_OPTIONS = [
+  { label: 'Κατοικία', value: 'home' },
+  { label: 'Εργασία', value: 'work' },
+  { label: 'Γραφείο', value: 'office' },
+  { label: 'Αποθήκη', value: 'warehouse' },
+  { label: 'Άλλο', value: 'other' },
+]
+
 export const Clients: CollectionConfig = {
   slug: 'clients',
   labels: {
@@ -46,10 +54,22 @@ export const Clients: CollectionConfig = {
       label: 'Κινητό Τηλέφωνο',
     },
     {
-      name: 'location',
-      type: 'group',
-      label: 'Τοποθεσία',
+      name: 'addresses',
+      type: 'array',
+      label: 'Διευθύνσεις',
+      admin: {
+        description: 'Προσθέστε μία ή περισσότερες διευθύνσεις για τον πελάτη.',
+        initCollapsed: false,
+      },
       fields: [
+        {
+          name: 'type',
+          type: 'select',
+          label: 'Τύπος Διεύθυνσης',
+          required: true,
+          defaultValue: 'home',
+          options: ADDRESS_TYPE_OPTIONS,
+        },
         {
           name: 'address',
           type: 'text',
@@ -64,17 +84,13 @@ export const Clients: CollectionConfig = {
           name: 'lat',
           type: 'number',
           label: 'Γεωγραφικό Πλάτος',
-          admin: {
-            hidden: true,
-          },
+          admin: { hidden: true },
         },
         {
           name: 'lng',
           type: 'number',
           label: 'Γεωγραφικό Μήκος',
-          admin: {
-            hidden: true,
-          },
+          admin: { hidden: true },
         },
       ],
     },

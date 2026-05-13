@@ -24,8 +24,9 @@ export const ServiceCategories: CollectionConfig = {
         if (data?.name && !data?.slug) {
           data.slug = data.name
             .toLowerCase()
+            .trim()
             .replace(/\s+/g, '-')
-            .replace(/[^\w-]+/g, '')
+            .replace(/[^\p{L}\p{N}-]+/gu, '')
         }
         return data
       },
